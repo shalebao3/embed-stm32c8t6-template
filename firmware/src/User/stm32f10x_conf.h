@@ -27,4 +27,4 @@
 
 #define assert_param(expr) ((void)0)
 
-#endif
+#endif /* __STM32F10X_CONF_H */

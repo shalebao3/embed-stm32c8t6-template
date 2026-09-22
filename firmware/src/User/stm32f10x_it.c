@@ -1,4 +1,5 @@
 #include "stm32f10x_it.h"
+#include "Com_Time.h"
 
 void NMI_Handler(void)
 {
@@ -46,5 +47,5 @@ void PendSV_Handler(void)
 
 void SysTick_Handler(void)
 {
-    g_ms_ticks++;
+    Com_Time_Tick();
 }

@@ -20,9 +20,6 @@ set(MCU_FLAGS
 
 set(STDPERIPH_ROOT "${CMAKE_SOURCE_DIR}/Libraries/STM32F10x_StdPeriph_Lib")
 set(STDPERIPH_DRIVER "${STDPERIPH_ROOT}/Libraries/STM32F10x_StdPeriph_Driver")
-set(CMSIS_CORE "${STDPERIPH_ROOT}/Libraries/CMSIS/CM3/CoreSupport")
-set(CMSIS_DEVICE "${STDPERIPH_ROOT}/Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x")
-set(STARTUP_FILE "${CMSIS_DEVICE}/startup/TrueSTUDIO/startup_stm32f10x_md.s")
 
 if(NOT EXISTS "${STDPERIPH_DRIVER}/src/stm32f10x_gpio.c")
     message(FATAL_ERROR
@@ -31,8 +28,20 @@ if(NOT EXISTS "${STDPERIPH_DRIVER}/src/stm32f10x_gpio.c")
     )
 endif()
 
+include("${CMAKE_CURRENT_SOURCE_DIR}/Start/startup.cmake")
+
 file(GLOB STDPERIPH_SOURCES CONFIGURE_DEPENDS
     "${STDPERIPH_DRIVER}/src/*.c"
+)
+
+# 模板中的业务目录全部纳入自动发现。后续新增 .c 文件时，
+# CMake 会因 CONFIGURE_DEPENDS 自动重新配置，不需要逐个维护源码列表。
+file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/src/User/*.c"
+    "${CMAKE_SOURCE_DIR}/src/App/*.c"
+    "${CMAKE_SOURCE_DIR}/src/Driver/*.c"
+    "${CMAKE_SOURCE_DIR}/src/Bsp/*.c"
+    "${CMAKE_SOURCE_DIR}/src/Common/*.c"
 )
 
 add_library(stm32_stdperiph STATIC
@@ -40,10 +49,9 @@ add_library(stm32_stdperiph STATIC
 )
 
 target_include_directories(stm32_stdperiph PUBLIC
-    "${CMAKE_SOURCE_DIR}/Core/Inc"
+    "${CMAKE_SOURCE_DIR}/src/User"
     "${STDPERIPH_DRIVER}/inc"
-    "${CMSIS_CORE}"
-    "${CMSIS_DEVICE}"
+    ${STM32_STARTUP_INCLUDE_DIRS}
 )
 
 target_compile_definitions(stm32_stdperiph PUBLIC
@@ -59,15 +67,16 @@ target_compile_options(stm32_stdperiph PRIVATE
 )
 
 add_executable(${CMAKE_PROJECT_NAME}
-    Core/Src/main.c
-    Core/Src/stm32f10x_it.c
-    "${CMSIS_CORE}/core_cm3.c"
-    "${CMSIS_DEVICE}/system_stm32f10x.c"
-    "${STARTUP_FILE}"
+    ${PROJECT_SOURCES}
+    ${STM32_STARTUP_SOURCES}
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    Core/Inc
+    src/User
+    src/App
+    src/Driver
+    src/Bsp
+    src/Common
 )
 
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
@@ -93,7 +102,7 @@ endif()
 
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE
     ${MCU_FLAGS}
-    "-T${CMAKE_SOURCE_DIR}/STM32F103xx_FLASH.ld"
+    "-T${CMAKE_SOURCE_DIR}/Start/STM32F103xx_FLASH.ld"
     --specs=nano.specs
     --specs=nosys.specs
     -Wl,--gc-sections

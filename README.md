@@ -1,51 +1,83 @@
-# STM32F103C8T6 标准库 CMake 模板
+# STM32F103C8T6 电赛标准库工程模板
 
-用于后续电子设计竞赛题目的 STM32F103C8T6 基础工程。
+用于后续电子设计竞赛项目的 STM32F103C8T6 基础脚手架。
 
-> 当前 `main` 保存 STM32F103C8T6 + 标准库 + CMake 模板。后续这个仓库可继续沉淀其它 STM32 模板。
-
-## 技术路线
+当前 `main` 固定为：
 
 - MCU：STM32F103C8T6
-- 标准库：STM32F10x Standard Peripheral Library V3.5.0
-- CMSIS：标准库自带 CMSIS CM3
-- 编译器：arm-none-eabi-gcc
-- 构建：CMake + Ninja
-- 编辑器：VSCode
-- 调试器：ST-Link
+- STM32F10x Standard Peripheral Library V3.5.0
+- arm-none-eabi-gcc
+- CMake + Ninja
+- VSCode + Cortex-Debug
+- ST-Link
 - 不使用 CubeMX
 - 不使用 HAL
 
-这个模板的目标是保留标准库的结构体初始化方式，同时让每个配置都还能继续追到参考手册和寄存器。
+模板只保留可跨题复用的工程基础设施。ADC、TIM、DMA、量程、电机等具体业务配置不预置，避免上一道题的实现污染下一道题。
 
-## 目录
+## 目录分层
 
 ```text
 .
-├── .vscode
-├── firmware
-│   ├── Core
-│   │   ├── Inc
-│   │   └── Src
-│   ├── Libraries
+├── .github/
+│   └── workflows/
+│       └── firmware-build.yml
+├── .vscode/
+├── firmware/
+│   ├── Start/
+│   │   ├── startup.cmake
+│   │   ├── cmsis-compat.cmake
+│   │   └── STM32F103xx_FLASH.ld
+│   ├── Libraries/
 │   │   └── STM32F10x_StdPeriph_Lib
-│   ├── cmake
-│   │   └── gcc-arm-none-eabi.cmake
+│   ├── cmake/
+│   ├── src/
+│   │   ├── User/
+│   │   ├── App/
+│   │   ├── Driver/
+│   │   ├── Bsp/
+│   │   └── Common/
 │   ├── CMakeLists.txt
-│   ├── CMakePresets.json
-│   └── STM32F103xx_FLASH.ld
+│   └── CMakePresets.json
+├── tests/
 └── README.md
 ```
 
-## 首次使用
+### 分层职责
 
-该仓库把 STM32F10x 标准库作为 Git submodule 固定到明确 commit。
+| 目录 | 职责 |
+| --- | --- |
+| `Start` | 启动文件、CMSIS 兼容、链接脚本 |
+| `User` | main、中断入口、标准库配置 |
+| `App` | 赛题业务流程、状态机、算法编排 |
+| `Driver` | STM32 片内 ADC/TIM/DMA/UART 等驱动 |
+| `Bsp` | 板级 GPIO 与外部器件映射 |
+| `Common` | 与赛题无关的通用组件 |
+
+当前 `Common` 预置 `Com_Time`，统一提供 1ms SysTick 时间基准。
+
+## 为什么不把 2011G 的 ADC 和自动量程一起带进来
+
+2011G 的 `Driver_ADC` 固定了 ADC1、PA0、Channel 0、软件触发和轮询 EOC；`bsp_Range` 又固定了继电器量程引脚。这些都属于具体赛题实现，不是模板基础设施。
+
+下一道题可能需要：
+
+- TIM 触发 ADC
+- ADC + DMA Circular
+- 多通道扫描
+- 输入捕获
+- PWM
+- 编码器接口
+
+因此模板只保留分层位置，不预设外设方案。
+
+## 首次使用
 
 ```bash
 git submodule update --init --recursive
 ```
 
-macOS 需要能够执行：
+确认工具链：
 
 ```bash
 arm-none-eabi-gcc --version
@@ -53,27 +85,19 @@ cmake --version
 ninja --version
 ```
 
-VSCode 推荐扩展已经写入 `.vscode/extensions.json`：
-
-- C/C++
-- CMake Tools
-- Cortex-Debug
-
 ## 构建
 
-VSCode 打开仓库后，CMake Tools 会自动把 `firmware` 作为源码目录，并使用 `CMakePresets.json`。
-
-命令行也可以直接从仓库根目录构建：
+从仓库根目录执行：
 
 ```bash
 cmake -S firmware -B firmware/build/Debug -G Ninja \
   -DCMAKE_BUILD_TYPE=Debug \
-  -DCMAKE_TOOLCHAIN_FILE=cmake/gcc-arm-none-eabi.cmake
+  -DCMAKE_TOOLCHAIN_FILE=firmware/cmake/gcc-arm-none-eabi.cmake
 
 cmake --build firmware/build/Debug
 ```
 
-输出：
+构建输出：
 
 ```text
 firmware/build/Debug/
@@ -83,48 +107,60 @@ firmware/build/Debug/
 └── stm32f103_std_template.map
 ```
 
-## 默认验证程序
+GitHub Actions 会同时验证 Debug / Release，并检查 CMSIS 兼容处理、源码分层和 BIN/HEX/MAP 产物。
 
-`Core/Src/main.c` 使用标准库初始化 GPIOC Pin 13，并按常见 Blue Pill 板卡的 PC13 低电平点亮方式每 500 ms 闪烁一次。
+## 新电赛题的推荐起步方式
 
-核心写法：
+1. 通过 GitHub 的 **Use this template** 创建新的题目仓库。
+2. 修改 `CMAKE_PROJECT_NAME` 为题目仓库名。
+3. 在 `App/` 创建业务入口，例如 `App_xxx.c/.h`。
+4. 按实际方案在 `Driver/` 增加 ADC、TIM、DMA 等驱动。
+5. 按实际硬件在 `Bsp/` 增加板级控制。
+6. 在 `main.c` 中完成初始化，并在主循环调用 `App_xxx_Task()`。
+7. 本地 Debug 构建通过后再提交，由 GitHub Actions 再验证 Debug / Release。
 
-```c
-GPIO_InitTypeDef gpio_init;
+CMake 已使用 `CONFIGURE_DEPENDS` 自动发现上述源码目录中新加入的 `.c` 文件，因此通常不需要每增加一个模块就手工修改源码列表。
 
-GPIO_StructInit(&gpio_init);
-gpio_init.GPIO_Pin = GPIO_Pin_13;
-gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
-GPIO_Init(GPIOC, &gpio_init);
-```
-
-如果你的板子 PC13 没接 LED，只需要修改验证引脚，不影响模板本身。
-
-## 为什么保留标准库
-
-建议以后按下面这条链学习：
+## 架构原则
 
 ```text
-参考手册寄存器
-    ↓
-标准库结构体 / 枚举 / 函数
-    ↓
-GPIO_InitTypeDef / TIM_TimeBaseInitTypeDef / DMA_InitTypeDef ...
-    ↓
-标准库内部实现
-    ↓
-寄存器
-    ↓
-外设硬件
+main / IRQ
+    │
+    ▼
+   App
+  / | \
+ ▼  ▼  ▼
+Driver Bsp Common
+   \   |   /
+    标准外设库
+        │
+        ▼
+      寄存器
+        │
+        ▼
+      STM32
 ```
 
-标准库比直接寄存器开发少一层重复劳动，但不会像 CubeMX + HAL 那样把初始化细节隐藏得太深。
+核心边界：
 
-## 新电赛题怎么使用
+- App 决定“做什么”。
+- Driver 决定“STM32 片内外设怎么工作”。
+- Bsp 决定“当前板子具体接到哪里、怎么驱动外部器件”。
+- Common 只放真正跨题通用能力。
+- 不修改固定版本标准库子模块源码。
 
-1. 从这个仓库创建新分支或复制为新的题目仓库。
-2. 保留 `Libraries`、linker、CMake 和 VSCode 配置。
-3. 修改 CMake 工程名。
-4. 删除或替换 PC13 LED 验证代码。
-5. 题目复杂后再增加 `App/`、`Driver/`、`Bsp/` 等业务目录。
-6. 不要修改标准库子模块里的源码，除非明确需要修库。
+## GitHub Template Repository
+
+建议在仓库 Settings → General 中勾选 **Template repository**。
+
+这样以后不要复制旧项目历史，也不需要重新搭工程：
+
+```text
+embed-stm32c8t6-template
+        ↓
+Use this template
+        ↓
+embed-xxxx-xxxx
+        ↓
+App + Driver + Bsp
+```
