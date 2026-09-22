@@ -215,6 +215,10 @@
     "Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_wwdg.c": {
       "upstream_blob_sha": "4a901e4edb57e50bdfb4c52697d054296e68cfeb",
       "vendored_blob_sha": "4a901e4edb57e50bdfb4c52697d054296e68cfeb"
+    },
+    "Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x/system_stm32f10x.h": {
+      "upstream_blob_sha": "54bc1abe722b2a82fe0fd9fb1b7acb937597a2c2",
+      "vendored_blob_sha": "54bc1abe722b2a82fe0fd9fb1b7acb937597a2c2"
     }
   }
 }
