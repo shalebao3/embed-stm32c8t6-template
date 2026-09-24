@@ -1,4 +1,4 @@
-#include "Com_Time.h"
+#include "com_time.h"
 
 static volatile uint32_t s_ms_ticks = 0U;
 

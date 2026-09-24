@@ -1,9 +1,9 @@
 #include "main.h"
-#include "Com_Time.h"
+#include "com_time.h"
 
 /**
  * @brief 通用工程入口。
- * @note 新题目通常在这里依次加入 App_xxx_Init()，并在 while(1) 中调用 App_xxx_Task()。
+ * @note 新题目通常在这里依次加入 App_Xxx_Init()，并在 while(1) 中调用 App_Xxx_Task()。
  */
 int main(void)
 {
@@ -19,7 +19,7 @@ int main(void)
         /*
          * 模板默认不绑定任何题目业务。
          * 示例：
-         * App_xxx_Task();
+         * App_Xxx_Task();
          */
     }
 }

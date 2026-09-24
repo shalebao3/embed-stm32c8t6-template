@@ -95,7 +95,7 @@ def main() -> None:
         not (firmware / "STM32F103xx_FLASH.ld").exists(),
         "仍遗留 firmware 根目录链接脚本",
     )
-    for directory in ("User", "App", "Driver", "Bsp", "Common"):
+    for directory in ("user", "app", "driver", "bsp", "common"):
         require((project_source / directory).is_dir(), "src 缺少 " + directory)
 
     for filename in (
@@ -105,10 +105,10 @@ def main() -> None:
         "stm32f10x_it.h",
         "stm32f10x_conf.h",
     ):
-        require((project_source / "User" / filename).is_file(), "User 缺少 " + filename)
+        require((project_source / "user" / filename).is_file(), "user 缺少 " + filename)
 
-    for filename in ("Com_Time.c", "Com_Time.h"):
-        require((project_source / "Common" / filename).is_file(), "Common 缺少 " + filename)
+    for filename in ("com_time.c", "com_time.h"):
+        require((project_source / "common" / filename).is_file(), "common 缺少 " + filename)
 
     for filename in (
         "startup.cmake",
@@ -122,9 +122,9 @@ def main() -> None:
     )
 
     expected_units = {
-        "main.c": project_source / "User/main.c",
-        "stm32f10x_it.c": project_source / "User/stm32f10x_it.c",
-        "Com_Time.c": project_source / "Common/Com_Time.c",
+        "main.c": project_source / "user/main.c",
+        "stm32f10x_it.c": project_source / "user/stm32f10x_it.c",
+        "com_time.c": project_source / "common/com_time.c",
         "system_stm32f10x.c": device / "system_stm32f10x.c",
         "startup_stm32f10x_md.s":
             device / "startup/TrueSTUDIO/startup_stm32f10x_md.s",
@@ -155,7 +155,7 @@ def main() -> None:
         )
 
     print(
-        "PASS: template layout, vendored pinned StdPeriph, CMSIS compatibility, "
+        "PASS: lowercase template layout, vendored pinned StdPeriph, CMSIS compatibility, "
         "unique startup units and BIN/HEX/MAP artifacts"
     )
 

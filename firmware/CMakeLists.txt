@@ -37,11 +37,11 @@ file(GLOB STDPERIPH_SOURCES CONFIGURE_DEPENDS
 # 模板中的业务目录全部纳入自动发现。后续新增 .c 文件时，
 # CMake 会因 CONFIGURE_DEPENDS 自动重新配置，不需要逐个维护源码列表。
 file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_SOURCE_DIR}/src/User/*.c"
-    "${CMAKE_SOURCE_DIR}/src/App/*.c"
-    "${CMAKE_SOURCE_DIR}/src/Driver/*.c"
-    "${CMAKE_SOURCE_DIR}/src/Bsp/*.c"
-    "${CMAKE_SOURCE_DIR}/src/Common/*.c"
+    "${CMAKE_SOURCE_DIR}/src/user/*.c"
+    "${CMAKE_SOURCE_DIR}/src/app/*.c"
+    "${CMAKE_SOURCE_DIR}/src/driver/*.c"
+    "${CMAKE_SOURCE_DIR}/src/bsp/*.c"
+    "${CMAKE_SOURCE_DIR}/src/common/*.c"
 )
 
 add_library(stm32_stdperiph STATIC
@@ -49,7 +49,7 @@ add_library(stm32_stdperiph STATIC
 )
 
 target_include_directories(stm32_stdperiph PUBLIC
-    "${CMAKE_SOURCE_DIR}/src/User"
+    "${CMAKE_SOURCE_DIR}/src/user"
     "${STDPERIPH_DRIVER}/inc"
     ${STM32_STARTUP_INCLUDE_DIRS}
 )
@@ -72,11 +72,11 @@ add_executable(${CMAKE_PROJECT_NAME}
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    src/User
-    src/App
-    src/Driver
-    src/Bsp
-    src/Common
+    src/user
+    src/app
+    src/driver
+    src/bsp
+    src/common
 )
 
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE

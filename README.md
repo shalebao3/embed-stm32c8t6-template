@@ -35,11 +35,11 @@
 │   │       └── VENDOR_MANIFEST.json
 │   ├── cmake/
 │   ├── src/
-│   │   ├── User/
-│   │   ├── App/
-│   │   ├── Driver/
-│   │   ├── Bsp/
-│   │   └── Common/
+│   │   ├── user/
+│   │   ├── app/
+│   │   ├── driver/
+│   │   ├── bsp/
+│   │   └── common/
 │   ├── CMakeLists.txt
 │   └── CMakePresets.json
 ├── tests/
@@ -51,13 +51,25 @@
 | 目录 | 职责 |
 | --- | --- |
 | `Start` | 启动文件、CMSIS 兼容、链接脚本 |
-| `User` | main、中断入口、标准库配置 |
-| `App` | 赛题业务流程、状态机、算法编排 |
-| `Driver` | STM32 片内 ADC/TIM/DMA/UART 等驱动 |
-| `Bsp` | 板级 GPIO 与外部器件映射 |
-| `Common` | 与赛题无关的通用组件 |
+| `user` | main、中断入口、标准库配置 |
+| `app` | 赛题业务流程、状态机、算法编排 |
+| `driver` | STM32 片内 ADC/TIM/DMA/UART 等驱动 |
+| `bsp` | 板级 GPIO 与外部器件映射 |
+| `common` | 与赛题无关的通用组件 |
 
-当前 `Common` 预置 `Com_Time`，统一提供 1ms SysTick 时间基准。
+当前 `common` 预置 `com_time.c/.h`，统一提供 1 ms SysTick 时间基准。
+
+### 自定义源码命名规范
+
+自定义目录和文件统一使用小写 `snake_case`，减少 macOS / Linux 大小写差异带来的构建问题：
+
+- `app/app_<功能>.c/.h`，公开 API 使用 `App_<Module>_...`；
+- `driver/drv_<外设>.c/.h`，公开 API 使用 `Drv_<Module>_...`；
+- `bsp/bsp_<器件>.c/.h`，公开 API 使用 `Bsp_<Module>_...`；
+- `common/com_<组件>.c/.h`，公开 API 使用 `Com_<Module>_...`；
+- `user` 中的 `main.c`、`stm32f10x_it.c/.h`、`stm32f10x_conf.h` 等 STM32 约定文件保留官方命名。
+
+文件名负责表达模块归属，函数名前缀负责表达“软件层 + 模块 + 动作”。不要混用 `App_Xxx.c`、`bsp_Xxx.c`、`Driver_xxx.c` 等文件命名风格。
 
 ### 标准库管理
 
@@ -65,12 +77,9 @@
 
 标准库来源与固定上游提交记录在 `VENDOR_INFO.md` / `VENDOR_MANIFEST.json`。业务开发不要修改该目录；CI 会校验 vendor 文件的 blob SHA。
 
+## 为什么不把具体赛题的 ADC 和自动量程一起带进来
 
-## 为什么不把 2011G 的 ADC 和自动量程一起带进来
-
-2011G 的 `Driver_ADC` 固定了 ADC1、PA0、Channel 0、软件触发和轮询 EOC；`bsp_Range` 又固定了继电器量程引脚。这些都属于具体赛题实现，不是模板基础设施。
-
-下一道题可能需要：
+不同赛题可能需要完全不同的外设组合，例如：
 
 - TIM 触发 ADC
 - ADC + DMA Circular
@@ -79,7 +88,7 @@
 - PWM
 - 编码器接口
 
-因此模板只保留分层位置，不预设外设方案。
+具体 ADC 通道、GPIO 引脚、触发源和 DMA 工作方式属于项目实现，不是模板基础设施，因此模板只保留分层位置，不预设外设方案。
 
 ## 首次使用
 
@@ -121,13 +130,13 @@ GitHub Actions 会同时验证 Debug / Release，并检查 CMSIS 兼容处理、
 
 1. 通过 GitHub 的 **Use this template** 创建新的题目仓库。
 2. 修改 `CMAKE_PROJECT_NAME` 为题目仓库名。
-3. 在 `App/` 创建业务入口，例如 `App_xxx.c/.h`。
-4. 按实际方案在 `Driver/` 增加 ADC、TIM、DMA 等驱动。
-5. 按实际硬件在 `Bsp/` 增加板级控制。
-6. 在 `main.c` 中完成初始化，并在主循环调用 `App_xxx_Task()`。
-7. 本地 Debug 构建通过后再提交，由 GitHub Actions 再验证 Debug / Release。
+3. 在 `app/` 创建业务入口，例如 `app_xxx.c/.h`，公开 API 使用 `App_Xxx_...` 前缀。
+4. 按实际方案在 `driver/` 增加 ADC、TIM、DMA 等驱动，例如 `drv_adc.c/.h`。
+5. 按实际硬件在 `bsp/` 增加板级控制，例如 `bsp_motor.c/.h`。
+6. 在 `main.c` 中完成初始化，并在主循环调用 `App_Xxx_Task()`。
+7. 本地 Debug 构建通过后再提交，由 GitHub Actions 验证 Debug / Release。
 
-CMake 已使用 `CONFIGURE_DEPENDS` 自动发现上述源码目录中新加入的 `.c` 文件，因此通常不需要每增加一个模块就手工修改源码列表。
+CMake 已使用 `CONFIGURE_DEPENDS` 自动发现 `user/app/driver/bsp/common` 下新增的 `.c` 文件，因此通常不需要每增加一个模块就手工修改源码列表。
 
 ## 架构原则
 
@@ -154,7 +163,7 @@ Driver Bsp Common
 - App 决定“做什么”。
 - Driver 决定“STM32 片内外设怎么工作”。
 - Bsp 决定“当前板子具体接到哪里、怎么驱动外部器件”。
-- Common 只放真正跨题通用能力。
+- Common 只放真正跨题通用的能力。
 - 不修改固定版本的 vendor 标准库源码。
 
 ## GitHub Template Repository
@@ -170,5 +179,5 @@ Use this template
         ↓
 embed-xxxx-xxxx
         ↓
-App + Driver + Bsp
+app + driver + bsp
 ```
